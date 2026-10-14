@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      imagePullSecrets:
+        - name: harbor-secret-backstage
+      containers:
+      - name: backstage
+        image: 192.168.56.11/devsecopspfa/backstage:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 7007
+        envFrom:
+        - secretRef:
+            name: backstage-env
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  selector:
+    app: backstage
+  ports:
+  - port: 80
+    targetPort: 7007
+    nodePort: 30707
+  type: NodePort

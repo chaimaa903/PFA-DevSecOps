@@ -1,0 +1,33 @@
+---
+- name: Configurer Docker pour Harbor insecure registry
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Créer config Docker daemon
+      copy:
+        content: |
+          {
+            "insecure-registries": ["192.168.56.11"],
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            }
+          }
+        dest: /etc/docker/daemon.json
+        mode: '0644'
+
+    - name: Redémarrer Docker
+      systemd:
+        name: docker
+        state: restarted
+
+    - name: Vérifier Docker actif
+      command: systemctl is-active docker
+      register: docker_status
+
+    - name: Afficher statut
+      debug:
+        msg: "Docker : {{ docker_status.stdout }}"

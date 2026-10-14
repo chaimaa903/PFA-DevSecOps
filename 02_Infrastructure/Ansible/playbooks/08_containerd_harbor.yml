@@ -1,0 +1,27 @@
+---
+- name: Configurer containerd pour Harbor insecure
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Configurer containerd hosts pour Harbor
+      file:
+        path: /etc/containerd/certs.d/192.168.56.11
+        state: directory
+        mode: '0755'
+
+    - name: Créer fichier hosts.toml pour Harbor
+      copy:
+        content: |
+          server = "http://192.168.56.11"
+          [host."http://192.168.56.11"]
+            capabilities = ["pull", "resolve", "push"]
+            skip_verify = true
+        dest: /etc/containerd/certs.d/192.168.56.11/hosts.toml
+        mode: '0644'
+
+    - name: Redémarrer containerd
+      systemd:
+        name: containerd
+        state: restarted

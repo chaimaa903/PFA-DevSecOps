@@ -1,0 +1,32 @@
+---
+- name: Prérequis Longhorn
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Installer open-iscsi et nfs-common
+      apt:
+        name:
+          - open-iscsi
+          - nfs-common
+          - util-linux
+          - curl
+          - grep
+          - mawk
+        state: present
+        update_cache: yes
+
+    - name: Démarrer iscsid
+      systemd:
+        name: iscsid
+        state: started
+        enabled: yes
+
+    - name: Vérifier iscsid
+      command: systemctl is-active iscsid
+      register: iscsid_status
+
+    - name: Afficher statut
+      debug:
+        msg: "iscsid : {{ iscsid_status.stdout }}"

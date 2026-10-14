@@ -1,0 +1,52 @@
+---
+- name: Installation des paquets Kubernetes
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Créer répertoire keyrings
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Télécharger clé GPG Kubernetes
+      shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | \
+        gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Ajouter dépôt Kubernetes
+      copy:
+        content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /\n"
+        dest: /etc/apt/sources.list.d/kubernetes.list
+
+    - name: Mettre à jour cache apt
+      apt:
+        update_cache: yes
+
+    - name: Installer kubelet kubeadm kubectl
+      apt:
+        name:
+          - kubelet=1.28.*
+          - kubeadm=1.28.*
+          - kubectl=1.28.*
+        state: present
+
+    - name: Bloquer mises à jour automatiques
+      command: apt-mark hold kubelet kubeadm kubectl
+
+    - name: Activer kubelet
+      systemd:
+        name: kubelet
+        enabled: yes
+
+    - name: Vérifier kubeadm
+      command: kubeadm version
+      register: result
+
+    - name: Afficher version kubeadm
+      debug:
+        msg: "{{ result.stdout }}"

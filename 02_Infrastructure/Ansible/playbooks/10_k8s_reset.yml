@@ -1,0 +1,70 @@
+---
+- name: Reset Kubernetes complet
+  hosts: all
+  become: yes
+  ignore_errors: yes
+
+  tasks:
+
+    - name: Arrêter kubelet
+      systemd:
+        name: kubelet
+        state: stopped
+      ignore_errors: yes
+
+    - name: Reset kubeadm
+      shell: kubeadm reset -f
+      ignore_errors: yes
+
+    - name: Supprimer dossiers K8s
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/kubernetes
+        - /var/lib/kubelet
+        - /var/lib/etcd
+        - /home/ubuntu/.kube
+        - /root/.kube
+      ignore_errors: yes
+
+    - name: Nettoyer iptables
+      shell: |
+        iptables -F && iptables -X
+        iptables -t nat -F
+        iptables -t nat -X
+        iptables -t mangle -F
+        iptables -t mangle -X
+        ip6tables -F && ip6tables -X
+      ignore_errors: yes
+
+    - name: Supprimer interfaces réseau K8s
+      shell: |
+        ip link delete cni0 2>/dev/null || true
+        ip link delete flannel.1 2>/dev/null || true
+        ip link delete tunl0 2>/dev/null || true
+        ip link delete vxlan.calico 2>/dev/null || true
+      ignore_errors: yes
+
+    - name: Nettoyer containerd
+      shell: |
+        crictl rm --all 2>/dev/null || true
+        crictl rmp --all 2>/dev/null || true
+      ignore_errors: yes
+
+    - name: Redémarrer containerd
+      systemd:
+        name: containerd
+        state: restarted
+      ignore_errors: yes
+
+    - name: Activer kubelet
+      systemd:
+        name: kubelet
+        enabled: yes
+        state: stopped
+      ignore_errors: yes
+
+    - name: Afficher résultat
+      debug:
+        msg: "Reset K8s terminé sur {{ inventory_hostname }}"

@@ -1,0 +1,89 @@
+---
+- name: Configuration de base des serveurs
+  hosts: all
+  become: true  #sudo
+#Ce playbook préparera les trois serveurs avant l'installation de Docker et Kubernetes.
+  tasks:
+
+    - name: Mise à jour du système
+      apt:
+        update_cache: yes #sudo apt update
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Installer les outils essentiels #automatiquement
+      apt: # Module Ansible pour gérer APT: sudo apt install
+        name:
+          - curl
+          - wget 
+          - git
+          - vim
+          - htop
+          - unzip
+          - net-tools
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - software-properties-common
+          - apt-transport-https
+        state: present
+
+    - name: Configurer le timezone
+      timezone:
+        name: Africa/Casablanca
+
+    - name: Configurer UFW - autoriser SSH
+      ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: Configurer UFW - autoriser port Kubernetes API
+      ufw:
+        rule: allow
+        port: '6443'
+        proto: tcp
+
+    - name: Configurer UFW - autoriser etcd
+      ufw:
+        rule: allow
+        port: '2379:2380'
+        proto: tcp
+
+    - name: Configurer UFW - autoriser Kubelet
+      ufw:
+        rule: allow
+        port: '10250'
+        proto: tcp
+
+    - name: Configurer UFW - autoriser NodePort
+      ufw:
+        rule: allow
+        port: '30000:32767'
+        proto: tcp
+
+    - name: Configurer UFW - autoriser Calico BGP
+      ufw:
+        rule: allow
+        port: '179'
+        proto: tcp
+
+    - name: Configurer UFW - autoriser Calico VXLAN
+      ufw:
+        rule: allow
+        port: '4789'
+        proto: udp
+
+    - name: Activer UFW
+      ufw:
+        state: enabled
+        policy: allow
+
+    - name: Vérifier statut UFW
+      command: ufw status
+      register: ufw_status
+
+    - name: Afficher statut UFW
+      debug:
+        msg: "{{ ufw_status.stdout }}"  # ansible-playbook playbooks/01_base.yml pour Exécuter le playbook ,curl --version tester ds une VM:
+
+ 
